@@ -4,33 +4,76 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private float constraint_f = 5;
-    private float yPos_f = 0.5f;
-    private Rigidbody player_rb;
+    private float boardConstraint_f = 5;
 
     // Start is called before the first frame update
     void Start()
     {
-        player_rb = GetComponent<Rigidbody>();
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        Vector3 startPosition = transform.position;
+        Vector3 moveVector = new Vector3(0, 0, 0);
 
         // Player movement
         if (Input.GetKeyDown(KeyCode.UpArrow))
-            transform.position = new Vector3(transform.position.x - 1, yPos_f, transform.position.z + 1);
+            moveVector = new Vector3(1, 0, 1);
         else if (Input.GetKeyDown(KeyCode.DownArrow))
-            transform.position = new Vector3(transform.position.x + 1, yPos_f, transform.position.z - 1);
+            moveVector = new Vector3(-1, 0, -1);
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
-            transform.position = new Vector3(transform.position.x - 1, yPos_f, transform.position.z - 1);
+            moveVector = new Vector3(-1, 0, 1);
         else if (Input.GetKeyDown(KeyCode.RightArrow))
-            transform.position = new Vector3(transform.position.x + 1, yPos_f, transform.position.z + 1);
+            moveVector = new Vector3(1, 0, -1);
 
-        // Constraint player position
-        if (Mathf.Abs(transform.position.x) > constraint_f || Mathf.Abs(transform.position.z) > constraint_f)
-            transform.position = startPosition;
+        // Board constraint
+        if (IsOutsideBoard(moveVector))
+            moveVector = new Vector3(0, 0, 0);
+        // Collision with another man
+        else
+        {
+            GameObject[] mansOnBoard = GameObject.FindGameObjectsWithTag("Man");
+            if (IsManThere(mansOnBoard, moveVector))
+            {
+                Vector3 manPosition = transform.position + moveVector;
+                moveVector *= 2;
+                if (IsOutsideBoard(moveVector) || IsManThere(mansOnBoard, moveVector))
+                    moveVector = new Vector3(0, 0, 0);
+                else
+                    TakeMan(mansOnBoard, manPosition);
+            }
+        }
+
+        transform.position += moveVector;
+    }
+
+    private bool IsOutsideBoard(Vector3 moveVector)
+    {
+        return Mathf.Abs((transform.position + moveVector).x) > boardConstraint_f ||
+            Mathf.Abs((transform.position + moveVector).z) > boardConstraint_f;
+    }
+
+    private bool IsManThere(GameObject[] mans, Vector3 moveVector)
+    {
+        foreach (GameObject man in mans)
+        {
+            if (man.name == name) continue;
+            if (man.transform.position.Equals(transform.position + moveVector))
+                return true;
+        }
+        return false;
+    }
+
+    private void TakeMan(GameObject[] mans, Vector3 position)
+    {
+        foreach (GameObject man in mans)
+        {
+            if (man.transform.position.Equals(position))
+            {
+                Destroy(man);
+                break;
+            }
+        }
     }
 }
